@@ -1,0 +1,3 @@
+- When the Android-powered device is in host mode, it acts as the USB host and powers the bus. When the Android-powered device is in USB accessory mode, the connected USB hardware (an Android USB accessory in this case) acts as the host and powers the bus.
+- We need the android powered device to be in USB host mode since the USB device we're connecting to the phone is a webcamera
+- `android.hardware.usb` package provides support to communicate with USB hardware peripherals that are connected to Android-powered devices
