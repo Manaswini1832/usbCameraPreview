@@ -13,4 +13,10 @@
         android:text="Hello"
         android:layout_centerInParent="true"/>
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/tv1"
+        android:text="usb class goes here"/>
+
 </RelativeLayout>

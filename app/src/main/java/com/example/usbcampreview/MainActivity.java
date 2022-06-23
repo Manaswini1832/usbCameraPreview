@@ -2,14 +2,19 @@ package com.example.usbcampreview;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.HashMap;
@@ -19,65 +24,70 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "USB_CAMERA_APP_LOGS2";
+    private static String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
 
-    private Button btnHello;
+    private BroadcastReceiver m_UsbReceiver = null;
+    private PendingIntent mPermissionIntent = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        btnHello = findViewById(R.id.btnHello);
+        Intent intent = new Intent(ACTION_USB_PERMISSION);
+        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
-        btnHello.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Toast.makeText(MainActivity.this, "Button clicked yo!!", Toast.LENGTH_SHORT).show();
-                Log.d(TAG, "THIS IS A NEW LOGGGGGGGGGGGG");
-//                Log.d(TAG, "---------------------------------------------------------------------------------------------");
-//                UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-//                HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
-////        UsbDevice device = deviceList.get("deviceName");
-//                for (Map.Entry<String, UsbDevice> entry : deviceList.entrySet()) {
-//                    String key = entry.getKey();
-//                    UsbDevice value = entry.getValue();
-//
-//                    Log.d(TAG, key + ":" + value);
-//                    Log.d(TAG, "---------------------------------------------------------------------------------------------");
-//                }
+        mPermissionIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+
+        m_UsbReceiver = new BroadcastReceiver() {
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+
+                Log.d(TAG, "CAME TILL HEREEEEEEEEEEEEEEEEEEEEE");
+                if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                    UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                    if (device != null) {
+                        // call your method that cleans up and closes communication with the device
+                        Log.v("BroadcastReceiver", "Device Detached");
+                    }
+                }
+                if (ACTION_USB_PERMISSION.equals(action)) {
+                    synchronized (this) {
+                        UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+
+                        if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                            Log.d(TAG, "------------------------------------------------------------------");
+                            if(device != null){
+                                //call method to set up device communication
+                                Log.d(TAG, "device permission granted ");
+                            }
+                        }
+                        else {
+                            Log.d(TAG, "permission denied for device ");
+                        }
+                        Log.d(TAG, "------------------------------------------------------------------");
+                    }
+                }
+
             }
-        });
-//        Intent intent = new Intent();
-//        UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-//
-//        String deviceName = device.getDeviceName();
-//        Log.d(TAG, "DEVICE DETECTED : " + deviceName);
+        };
 
 
-    }
+        registerReceiver(m_UsbReceiver, filter);
 
-    @Override
-    public void onResume() {
-        super.onResume();
-//        Log.d(TAG, "---------------------------------------------------------------------------------------------");
-        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
-//        for (Map.Entry<String, UsbDevice> entry : deviceList.entrySet()) {
-//            String key = entry.getKey();
-//            UsbDevice value = entry.getValue();
-//
-//            Log.d(TAG, key + ":" + value);
-//            Log.d(TAG, "---------------------------------------------------------------------------------------------");
-//        }
+        HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
         Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
         while(deviceIterator.hasNext()){
             UsbDevice device = deviceIterator.next();
-            String deviceName = device.getDeviceName();
-            int deviceId = device.getDeviceId();
-            Log.d(TAG, "---------------------------------------------------------------------------------------------");
-            Log.d(TAG, "DEVICE DETECTED : " + deviceName);
-            Log.d(TAG, "DEVICE ID : " + Integer.toString(deviceId));
-            Log.d(TAG, "---------------------------------------------------------------------------------------------");
+            usbManager.requestPermission(device, mPermissionIntent);
         }
+
     }
 }
+
+
+
+
+
