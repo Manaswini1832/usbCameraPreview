@@ -2,21 +2,27 @@ package com.example.usbcampreview;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -79,6 +85,11 @@ public class MainActivity extends AppCompatActivity {
 
         btnGet = findViewById(R.id.btnGet);
 
+        handlePermissions(new String[]{
+//                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.CAMERA
+        });
+
         btnGet.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -112,12 +123,17 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("NewApi")
     private void logDeviceInfo(UsbDevice device) {
-        //Logs device name, product name, class, subclass, protocol of the USB device
-        Log.d(TAG, device.getDeviceName());
-        Log.d(TAG, device.getProductName());
-        Log.d(TAG, String.valueOf(device.getDeviceClass()));
-        Log.d(TAG, String.valueOf(device.getDeviceSubclass()));
-        Log.d(TAG, String.valueOf(device.getDeviceProtocol()));
+        if(device != null){
+            //Logs device name, product name, class, subclass, protocol of the USB device
+            Log.d(TAG, device.getDeviceName());
+            Log.d(TAG, device.getProductName());
+            Log.d(TAG, String.valueOf(device.getDeviceClass()));
+            Log.d(TAG, String.valueOf(device.getDeviceSubclass()));
+            Log.d(TAG, String.valueOf(device.getDeviceProtocol()));
+        }else{
+            //Logs device name, product name, class, subclass, protocol of the USB device
+            Log.d(TAG, "No USB device connected");
+        }
     }
 
 
@@ -128,6 +144,40 @@ public class MainActivity extends AppCompatActivity {
         connection = manager.openDevice(device); // GIVES THIS ERROR : "E/usbhost: usb_device_new read returned 2521 errno 0" Not sure what it means
         //Above error has some code on google but didn't understand : https://android.googlesource.com/platform/system/core/+/master/libusbhost/usbhost.c
         connection.claimInterface(intf, true);
+    }
+
+    private void handlePermissions(String[] permissions) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ArrayList<String> notGrantedPerms = new ArrayList<>();
+            for (String p : permissions) {
+                if (this.checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED)
+                    notGrantedPerms.add(p);
+            }
+            permissions = notGrantedPerms.toArray(new String[0]);
+            if (permissions != null && permissions.length > 0)
+                this.requestPermissions(permissions, 701);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 701) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                for (String p : permissions) {
+                    String msg = "";
+                    if (this.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED) {
+                        msg = "Permission Granted for " + p;
+                        btnGet.setEnabled(true);
+                    }
+                    else{
+                        msg = "Permission not Granted for " + p;
+                        btnGet.setEnabled(false);
+                    }
+                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
     }
 }
 
