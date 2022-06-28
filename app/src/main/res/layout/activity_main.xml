@@ -7,16 +7,11 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/btnHello"
+        android:id="@+id/btnGet"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello"
+        android:text="GET"
         android:layout_centerInParent="true"/>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/tv1"
-        android:text="usb class goes here"/>
 
 </RelativeLayout>
