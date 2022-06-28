@@ -25,7 +25,7 @@ import java.util.Iterator;
 * Steps followed : When the 'GET' button is clicked the following things happen(reference : https://developer.android.com/guide/topics/connectivity/usb/host)
 * 1) Enumerate USB devices : Found the camera. Details like name etc were logged successfully
 * 2) Request user to communicate with camera : For now, explicitly enable camera permissions in the phone. Will later deal with doing this in code. For now, explicitly give camera permission on phone
-* 3) Communicate with the external camera(Here, error is showing up. See lines 134 and 135)
+* 3) Communicate with the external camera(Here, error is showing up. See lines 128 and 129)
 * */
 
 
