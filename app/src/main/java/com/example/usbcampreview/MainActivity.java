@@ -17,9 +17,16 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-
 import java.util.HashMap;
 import java.util.Iterator;
+
+
+/*
+* Steps followed : When the 'GET' button is clicked the following things happen(reference : https://developer.android.com/guide/topics/connectivity/usb/host)
+* 1) Enumerate USB devices : Found the camera. Details like name etc were logged successfully
+* 2) Request user to communicate with camera : For now, explicitly enable camera permissions in the phone. Will later deal with doing this in code. For now, explicitly give camera permission on phone
+* 3) Communicate with the external camera(Here, error is showing up. See lines 134 and 135)
+* */
 
 
 public class MainActivity extends AppCompatActivity {
@@ -31,11 +38,12 @@ public class MainActivity extends AppCompatActivity {
 
     private UsbDevice device;
     private UsbManager manager;
+    private UsbDeviceConnection connection;
+    private UsbInterface intf;
+    private UsbEndpoint endpoint;
 
     //TODO : Change length of bytes array later
-    private byte[] bytes = new byte[51];
-    private static int TIMEOUT = 1000; // Collects info from external camera for 1second
-    private boolean forceClaim = true;
+    byte[] readBytes = new byte[64];
 
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
         @Override
@@ -45,16 +53,15 @@ public class MainActivity extends AppCompatActivity {
             //To get permission to communicate with the USB device
             if (ACTION_USB_PERMISSION.equals(action)) {
                 synchronized (this) {
-                    UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                    UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                     //TODO : Make user accept camera permission. For now I did it deliberately in phone's app permission settings
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                        if(device != null){
+                        if (device != null) {
                             Log.d(TAG, "permission accepted for device");
                             //Once user's permission is obtained, communicate with the camera
                             communicateWithCamera();
                         }
-                    }
-                    else {
+                    } else {
                         Log.d(TAG, "permission denied for device");
                     }
                 }
@@ -92,19 +99,19 @@ public class MainActivity extends AppCompatActivity {
 
 
     //TODO : Enumerates all connected USB devices but should only return the external camera
-    private UsbDevice enumerateUSBDevices(UsbManager manager){
+    private UsbDevice enumerateUSBDevices(UsbManager manager) {
         //Gets a list of all USB devices attached
         HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
         Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
         UsbDevice device = null;
-        while(deviceIterator.hasNext()){
+        while (deviceIterator.hasNext()) {
             device = deviceIterator.next();
         }
         return device;
     }
 
     @SuppressLint("NewApi")
-    private void logDeviceInfo(UsbDevice device){
+    private void logDeviceInfo(UsbDevice device) {
         //Logs device name, product name, class, subclass, protocol of the USB device
         Log.d(TAG, device.getDeviceName());
         Log.d(TAG, device.getProductName());
@@ -113,26 +120,15 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, String.valueOf(device.getDeviceProtocol()));
     }
 
-    //Gets info from the camera
-    private void communicateWithCamera(){
-        Thread camThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                //Got all the following code from USB host api docs : https://developer.android.com/guide/topics/connectivity/usb/host#communicating-d
-                UsbInterface intf = device.getInterface(0);
-                UsbEndpoint endpoint = intf.getEndpoint(0);
-                UsbDeviceConnection connection = manager.openDevice(device);
-                connection.claimInterface(intf, forceClaim);
-                connection.bulkTransfer(endpoint,
-                        bytes,
-                        bytes.length,
-                        TIMEOUT);
-            }
-        });
-        camThread.start();
 
+    //TODO : Deal with the following error
+    private void communicateWithCamera(){
+        intf = device.getInterface(0);
+        endpoint = intf.getEndpoint(0);
+        connection = manager.openDevice(device); // GIVES THIS ERROR : "E/usbhost: usb_device_new read returned 2521 errno 0" Not sure what it means
+        //Above error has some code on google but didn't understand : https://android.googlesource.com/platform/system/core/+/master/libusbhost/usbhost.c
+        connection.claimInterface(intf, true);
     }
 }
-
 
 
