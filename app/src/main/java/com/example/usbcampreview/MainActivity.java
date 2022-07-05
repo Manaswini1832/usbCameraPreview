@@ -48,16 +48,34 @@ public class MainActivity extends AppCompatActivity {
     private UsbInterface intf;
     private UsbEndpoint endpoint;
 
+    private mUsbReceiver newUsbReceiver;
+
     //TODO : Change length of bytes array later
     byte[] readBytes = new byte[64];
 
-    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+    private class mUsbReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-
-            if (ACTION_USB_PERMISSION.equals(action)) {
-                synchronized (this) {
+//            String action = intent.getAction();
+//
+//            if (ACTION_USB_PERMISSION.equals(action)) {
+//                synchronized (this) {
+//                    UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+//                    //TODO : Make user accept camera permission. For now I did it deliberately in phone's app permission settings
+//                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+//                        if (device != null) {
+//                            Log.d(TAG, "permission accepted for device");
+//                            //Once user's permission is obtained, communicate with the camera
+//                            communicateWithCamera();
+//                        }
+//                    } else {
+//                        Log.d(TAG, "permission denied for device");
+//                    }
+//                }
+//            }
+            try {
+                if(intent.getAction().equals(ACTION_USB_PERMISSION)){
+                    synchronized (this) {
                     UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                     //TODO : Make user accept camera permission. For now I did it deliberately in phone's app permission settings
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
@@ -70,6 +88,9 @@ public class MainActivity extends AppCompatActivity {
                         Log.d(TAG, "permission denied for device");
                     }
                 }
+                }
+            }catch(Exception e){
+                Log.d(TAG, "Wrong intent broadcasted");
             }
         }
     };
@@ -79,6 +100,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        newUsbReceiver = new mUsbReceiver();
 
         manager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
@@ -99,9 +122,15 @@ public class MainActivity extends AppCompatActivity {
                 logDeviceInfo(device);
 
                 //Get user's permission to communicate with the USB device
-                PendingIntent mPermissionIntent = PendingIntent.getBroadcast(MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+                Intent usbPermissionIntent = new Intent(ACTION_USB_PERMISSION);
+                usbPermissionIntent.setAction(ACTION_USB_PERMISSION);
+                usbPermissionIntent.putExtra("whatever", true);
+                sendBroadcast(usbPermissionIntent);
+
                 IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-                registerReceiver(mUsbReceiver, filter);
+                MainActivity.this.registerReceiver(newUsbReceiver, filter);
+
+                PendingIntent mPermissionIntent = PendingIntent.getBroadcast(MainActivity.this, 0, usbPermissionIntent, 0);
                 manager.requestPermission(device, mPermissionIntent);
             }
         });
